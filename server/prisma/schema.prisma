@@ -1,0 +1,29 @@
+// Prisma schema for MySQL
+// Set DATABASE_URL in server/.env
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model Role {
+  id    Int     @id @default(autoincrement())
+  name  String  @unique // 'ADMIN' | 'STAFF' | 'VIEWER'
+  users User[]
+}
+
+model User {
+  id         Int      @id @default(autoincrement())
+  email      String   @unique
+  password   String
+  fullName   String
+  isActive   Boolean  @default(true)
+  roleId     Int
+  role       Role     @relation(fields: [roleId], references: [id])
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+}

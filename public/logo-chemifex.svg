@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" role="img" aria-label="CHEMIFEX logo">
+  <defs>
+    <linearGradient id="gblue" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#1e40af"/>
+      <stop offset="100%" stop-color="#2563eb"/>
+    </linearGradient>
+    <linearGradient id="gorange" x1="1" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#f97316"/>
+      <stop offset="100%" stop-color="#ea580c"/>
+    </linearGradient>
+  </defs>
+  <!-- Double arc mark -->
+  <path d="M90 18c-12-8-27-10-41-5C31 18 18 31 13 49" fill="none" stroke="url(#gblue)" stroke-width="8" stroke-linecap="round"/>
+  <path d="M100 33c7 12 8 27 3 40-6 16-19 29-36 34" fill="none" stroke="url(#gorange)" stroke-width="6" stroke-linecap="round"/>
+  <!-- Small base stroke -->
+  <path d="M34 104c7 4 15 6 24 6" fill="none" stroke="url(#gblue)" stroke-width="5" stroke-linecap="round"/>
+</svg>
