@@ -1,10 +1,13 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Menu, X, Search, User, ShoppingCart, Phone, ChevronDown } from 'lucide-react';
+import { useAuth } from '@/contexts/AuthContext';
 
 const Navigation: React.FC = () => {
   const [isOpen, setIsOpen] = useState(false);
   const location = useLocation();
+  const navigate = useNavigate();
+  const { token, user, logout } = useAuth();
   const brandRef = useRef<HTMLDivElement | null>(null);
   const [brandWidth, setBrandWidth] = useState<number>(0);
   const [brandHeight, setBrandHeight] = useState<number>(0);
@@ -65,9 +68,27 @@ const Navigation: React.FC = () => {
             <a href="tel:+15551234567" className="flex items-center text-sm text-gray-600 hover:text-brand-blue">
               <Phone className="w-4 h-4 mr-2" /> Contact
             </a>
-            <Link to="/login" className="flex items-center text-sm text-gray-700 hover:text-brand-blue">
-              <User className="w-5 h-5 mr-2" /> Sign In
-            </Link>
+            {!token ? (
+              <Link to="/login" className="flex items-center text-sm text-gray-700 hover:text-brand-blue">
+                <User className="w-5 h-5 mr-2" /> Sign In
+              </Link>
+            ) : (
+              <div className="flex items-center space-x-3">
+                <Link to="/dashboard" className="text-sm text-gray-700 hover:text-brand-blue">
+                  Dashboard
+                </Link>
+                <span className="text-sm text-gray-500">{user?.fullName || user?.email}</span>
+                <button
+                  onClick={() => {
+                    logout();
+                    navigate('/');
+                  }}
+                  className="text-sm text-gray-700 hover:text-brand-blue"
+                >
+                  Logout
+                </button>
+              </div>
+            )}
             <button className="relative">
               <ShoppingCart className="w-6 h-6 text-gray-700 hover:text-brand-blue" />
               <span className="absolute -top-1 -right-1 bg-brand-blue text-white text-[10px] leading-4 rounded-full w-4 h-4 grid place-items-center">0</span>
@@ -155,9 +176,27 @@ const Navigation: React.FC = () => {
             ))}
           </div>
           <div className="px-4 py-3 flex items-center space-x-6">
-            <Link to="/login" onClick={() => setIsOpen(false)} className="flex items-center text-sm text-gray-700">
-              <User className="w-5 h-5 mr-2" /> Sign In
-            </Link>
+            {!token ? (
+              <Link to="/login" onClick={() => setIsOpen(false)} className="flex items-center text-sm text-gray-700">
+                <User className="w-5 h-5 mr-2" /> Sign In
+              </Link>
+            ) : (
+              <>
+                <Link to="/dashboard" onClick={() => setIsOpen(false)} className="text-sm text-gray-700">
+                  Dashboard
+                </Link>
+                <button
+                  onClick={() => {
+                    setIsOpen(false);
+                    logout();
+                    navigate('/');
+                  }}
+                  className="text-sm text-gray-700"
+                >
+                  Logout
+                </button>
+              </>
+            )}
             <button className="flex items-center text-sm text-gray-700">
               <ShoppingCart className="w-5 h-5 mr-2" /> Cart
             </button>

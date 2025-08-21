@@ -1,5 +1,6 @@
-import React, { useEffect, useRef } from 'react';
-import { Link } from 'react-router-dom';
+import React, { useEffect, useRef, useState } from 'react';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { useAuth } from '@/contexts/AuthContext';
 
 const SpiralBackground: React.FC = () => {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -18,6 +19,7 @@ const SpiralBackground: React.FC = () => {
       w = canvas.width = canvas.offsetWidth;
       h = canvas.height = canvas.offsetHeight;
     };
+
     const dpr = Math.max(1, window.devicePixelRatio || 1);
     const resizeObserver = new ResizeObserver(() => {
       const rect = canvas.getBoundingClientRect();
@@ -91,6 +93,38 @@ const SpiralBackground: React.FC = () => {
 };
 
 const Login: React.FC = () => {
+  const { login, token } = useAuth();
+  const navigate = useNavigate();
+  const location = useLocation() as any;
+  const from = location.state?.from?.pathname || '/dashboard';
+
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError(null);
+    setLoading(true);
+    try {
+      const res = await fetch('http://localhost:4000/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data?.message || 'Login failed');
+      login(data.token, data.user);
+      const nextPath = (data?.user?.role === 'ADMIN') ? '/admin' : from;
+      navigate(nextPath, { replace: true });
+    } catch (err: any) {
+      setError(err.message || 'Login failed');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <section className="relative min-h-[80vh] flex items-center justify-center bg-white">
       <SpiralBackground />
@@ -102,7 +136,7 @@ const Login: React.FC = () => {
             <p className="text-gray-600 text-sm">Sign in to manage products, inventory, and customers.</p>
           </div>
 
-          <form className="space-y-4" onSubmit={(e) => e.preventDefault()}>
+          <form className="space-y-4" onSubmit={handleSubmit}>
             <div>
               <label className="block text-sm font-medium text-gray-700">Email</label>
               <input
@@ -110,6 +144,8 @@ const Login: React.FC = () => {
                 required
                 className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-brand-blue/60"
                 placeholder="you@company.com"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
               />
             </div>
             <div>
@@ -119,13 +155,21 @@ const Login: React.FC = () => {
                 required
                 className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-brand-blue/60"
                 placeholder="••••••••"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
               />
             </div>
+            {error && (
+              <div className="text-sm text-red-600" role="alert">
+                {error}
+              </div>
+            )}
             <button
               type="submit"
-              className="w-full inline-flex items-center justify-center bg-brand-blue hover:brightness-110 text-white font-semibold px-4 py-2.5 rounded-lg"
+              disabled={loading}
+              className="w-full inline-flex items-center justify-center bg-brand-blue hover:brightness-110 disabled:opacity-60 disabled:cursor-not-allowed text-white font-semibold px-4 py-2.5 rounded-lg"
             >
-              Sign In
+              {loading ? 'Signing in…' : 'Sign In'}
             </button>
             <div className="flex items-center justify-between text-sm">
               <Link to="/" className="text-brand-blue hover:underline">Back to home</Link>

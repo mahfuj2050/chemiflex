@@ -1,6 +1,3 @@
-// Prisma schema for MySQL
-// Set DATABASE_URL in server/.env
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -10,20 +7,167 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-model Role {
-  id    Int     @id @default(autoincrement())
-  name  String  @unique // 'ADMIN' | 'STAFF' | 'VIEWER'
-  users User[]
+model role {
+  id   Int    @id @default(autoincrement())
+  name String @unique(map: "name") @db.VarChar(50)
+  user user[]
 }
 
-model User {
+model user {
+  id        Int      @id @default(autoincrement())
+  email     String   @unique(map: "email") @db.VarChar(255)
+  password  String   @db.VarChar(255)
+  fullName  String   @db.VarChar(255)
+  isActive  Boolean  @default(true)
+  roleId    Int
+  createdAt DateTime @default(now()) @db.DateTime(0)
+  updatedAt DateTime @default(now()) @db.DateTime(0)
+  role      role     @relation(fields: [roleId], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "user_ibfk_1")
+
+  @@index([roleId], map: "roleId")
+}
+
+// Product visibility and status like WooCommerce
+enum product_status {
+  DRAFT
+  PUBLISHED
+  TRASH
+}
+
+enum product_visibility {
+  PUBLIC
+  PRIVATE
+  PASSWORD
+}
+
+model product_category {
+  id                   Int                @id @default(autoincrement())
+  name                 String             @db.VarChar(255)
+  slug                 String             @unique(map: "product_category_slug") @db.VarChar(255)
+  description          String?            @db.Text
+  parentId             Int?
+  parent               product_category?  @relation("CategoryToParent", fields: [parentId], references: [id])
+  children             product_category[] @relation("CategoryToParent")
+  products             product[]
+  preferredByCustomers customer[]         @relation("PreferredCategory")
+  suppliers            supplier[]         @relation("SupplierCategories")
+  createdAt            DateTime           @default(now()) @db.DateTime(0)
+  updatedAt            DateTime           @default(now()) @db.DateTime(0)
+
+  @@index([parentId])
+}
+
+model product_image {
+  id        Int     @id @default(autoincrement())
+  url       String  @db.VarChar(1024)
+  alt       String? @db.VarChar(255)
+  position  Int     @default(0)
+  productId Int
+  product   product @relation(fields: [productId], references: [id])
+}
+
+model product {
+  id                   Int                @id @default(autoincrement())
+  name                 String             @db.VarChar(255)
+  slug                 String             @unique(map: "product_slug") @db.VarChar(255)
+  sku                  String?            @unique(map: "product_sku") @db.VarChar(100)
+  description          String?            @db.Text
+  shortDescription     String?            @db.Text
+  price                Decimal            @db.Decimal(10, 2)
+  salePrice            Decimal?           @db.Decimal(10, 2)
+  status               product_status     @default(DRAFT)
+  visibility           product_visibility @default(PUBLIC)
+  manageStock          Boolean            @default(true)
+  stockQuantity        Int                @default(0)
+  weight               Decimal?           @db.Decimal(10, 2)
+  length               Decimal?           @db.Decimal(10, 2)
+  width                Decimal?           @db.Decimal(10, 2)
+  height               Decimal?           @db.Decimal(10, 2)
+  categoryId           Int
+  category             product_category   @relation(fields: [categoryId], references: [id])
+  images               product_image[]
+  tags                 product_tag[]
+  preferredByCustomers customer[]         @relation("PreferredProduct")
+  createdAt            DateTime           @default(now()) @db.DateTime(0)
+  updatedAt            DateTime           @default(now()) @db.DateTime(0)
+
+  @@index([categoryId])
+}
+
+model product_tag {
+  id          Int       @id @default(autoincrement())
+  name        String    @db.VarChar(255)
+  slug        String    @unique(map: "product_tag_slug") @db.VarChar(255)
+  description String?   @db.Text
+  products    product[]
+}
+
+model customer {
+  id                  Int               @id @default(autoincrement())
+  fullName            String            @db.VarChar(255)
+  email               String?           @unique(map: "customer_email") @db.VarChar(255)
+  phone               String?           @db.VarChar(50)
+  company             String?           @db.VarChar(255)
+  notes               String?           @db.Text
+  preferredCategoryId Int?
+  preferredCategory   product_category? @relation("PreferredCategory", fields: [preferredCategoryId], references: [id])
+  preferredProductId  Int?
+  preferredProduct    product?          @relation("PreferredProduct", fields: [preferredProductId], references: [id])
+  createdAt           DateTime          @default(now()) @db.DateTime(0)
+  updatedAt           DateTime          @default(now()) @db.DateTime(0)
+
+  @@index([preferredCategoryId])
+  @@index([preferredProductId])
+}
+
+model supplier {
+  id        Int      @id @default(autoincrement())
+  name      String   @db.VarChar(255)
+  email     String?  @unique(map: "supplier_email") @db.VarChar(255)
+  phone     String?  @db.VarChar(50)
+  company   String?  @db.VarChar(255)
+  address   String?  @db.VarChar(512)
+  notes     String?  @db.Text
+  categories product_category[] @relation("SupplierCategories")
+  preferredCategoryId Int?
+  preferredCategory   product_category? @relation("SupplierPreferredCategory", fields: [preferredCategoryId], references: [id])
+  preferredProductId  Int?
+  preferredProduct    product?          @relation("SupplierPreferredProduct", fields: [preferredProductId], references: [id])
+  createdAt DateTime @default(now()) @db.DateTime(0)
+  updatedAt DateTime @default(now()) @db.DateTime(0)
+
+  @@index([preferredCategoryId])
+  @@index([preferredProductId])
+}
+
+// Sales (Invoice) models
+model sale {
+  id          Int        @id @default(autoincrement())
+  uuid        String     @unique(map: "sale_uuid") @db.VarChar(50)
+  date        DateTime   @db.DateTime(0)
+  customerId  Int?
+  customer    customer?  @relation(fields: [customerId], references: [id])
+  address     String?    @db.VarChar(512)
+  totalAmount Decimal    @default(0) @db.Decimal(12, 2)
+  items       sale_item[]
+  createdAt   DateTime   @default(now()) @db.DateTime(0)
+  updatedAt   DateTime   @default(now()) @db.DateTime(0)
+
+  @@index([customerId])
+}
+
+model sale_item {
   id         Int      @id @default(autoincrement())
-  email      String   @unique
-  password   String
-  fullName   String
-  isActive   Boolean  @default(true)
-  roleId     Int
-  role       Role     @relation(fields: [roleId], references: [id])
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
+  saleId     Int
+  sale       sale     @relation(fields: [saleId], references: [id])
+  productId  Int?
+  product    product? @relation(fields: [productId], references: [id])
+  productName String  @db.VarChar(255)
+  unit        String? @db.VarChar(50)
+  quantity    Int
+  unitPrice   Decimal @db.Decimal(10, 2)
+  lineTotal   Decimal @db.Decimal(12, 2)
+
+  @@index([saleId])
+  @@index([productId])
 }

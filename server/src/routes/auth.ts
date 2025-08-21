@@ -43,7 +43,7 @@ auth.post('/login', async (req, res, next) => {
     const ok = await bcrypt.compare(password, user.password);
     if (!ok) return res.status(401).json({ message: 'Invalid credentials' });
 
-    const token = jwt.sign({ sub: user.id, role: user.role.name }, env.JWT_SECRET, { expiresIn: '7d' });
+    const token = jwt.sign({ sub: String(user.id), role: user.role.name }, env.JWT_SECRET, { expiresIn: '7d' });
     res.json({
       token,
       user: { id: user.id, email: user.email, fullName: user.fullName, role: user.role.name }
@@ -58,8 +58,15 @@ auth.get('/me', async (req, res, next) => {
     const authz = req.headers.authorization || '';
     const token = authz.startsWith('Bearer ') ? authz.slice(7) : '';
     if (!token) return res.status(401).json({ message: 'Unauthorized' });
-    const payload = jwt.verify(token, env.JWT_SECRET) as { sub: number };
-    const user = await prisma.user.findUnique({ where: { id: payload.sub }, select: { id: true, email: true, fullName: true } });
+    const decoded = jwt.verify(token, env.JWT_SECRET);
+    if (typeof decoded !== 'object' || !('sub' in decoded) || !decoded.sub) {
+      return res.status(401).json({ message: 'Unauthorized' });
+    }
+    const userId = Number((decoded as jwt.JwtPayload).sub);
+    if (Number.isNaN(userId)) {
+      return res.status(401).json({ message: 'Unauthorized' });
+    }
+    const user = await prisma.user.findUnique({ where: { id: userId }, select: { id: true, email: true, fullName: true } });
     if (!user) return res.status(401).json({ message: 'Unauthorized' });
     res.json(user);
   } catch (err) {
