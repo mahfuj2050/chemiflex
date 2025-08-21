@@ -51,6 +51,7 @@ model product_category {
   products             product[]
   preferredByCustomers customer[]         @relation("PreferredCategory")
   suppliers            supplier[]         @relation("SupplierCategories")
+  preferredBySuppliers supplier[]         @relation("SupplierPreferredCategory")
   createdAt            DateTime           @default(now()) @db.DateTime(0)
   updatedAt            DateTime           @default(now()) @db.DateTime(0)
 
@@ -88,6 +89,8 @@ model product {
   images               product_image[]
   tags                 product_tag[]
   preferredByCustomers customer[]         @relation("PreferredProduct")
+  preferredBySuppliers supplier[]         @relation("SupplierPreferredProduct")
+  saleItems            sale_item[]
   createdAt            DateTime           @default(now()) @db.DateTime(0)
   updatedAt            DateTime           @default(now()) @db.DateTime(0)
 
@@ -113,6 +116,7 @@ model customer {
   preferredCategory   product_category? @relation("PreferredCategory", fields: [preferredCategoryId], references: [id])
   preferredProductId  Int?
   preferredProduct    product?          @relation("PreferredProduct", fields: [preferredProductId], references: [id])
+  sales               sale[]
   createdAt           DateTime          @default(now()) @db.DateTime(0)
   updatedAt           DateTime          @default(now()) @db.DateTime(0)
 
@@ -121,20 +125,20 @@ model customer {
 }
 
 model supplier {
-  id        Int      @id @default(autoincrement())
-  name      String   @db.VarChar(255)
-  email     String?  @unique(map: "supplier_email") @db.VarChar(255)
-  phone     String?  @db.VarChar(50)
-  company   String?  @db.VarChar(255)
-  address   String?  @db.VarChar(512)
-  notes     String?  @db.Text
-  categories product_category[] @relation("SupplierCategories")
+  id                  Int                @id @default(autoincrement())
+  name                String             @db.VarChar(255)
+  email               String?            @unique(map: "supplier_email") @db.VarChar(255)
+  phone               String?            @db.VarChar(50)
+  company             String?            @db.VarChar(255)
+  address             String?            @db.VarChar(512)
+  notes               String?            @db.Text
+  categories          product_category[] @relation("SupplierCategories")
   preferredCategoryId Int?
-  preferredCategory   product_category? @relation("SupplierPreferredCategory", fields: [preferredCategoryId], references: [id])
+  preferredCategory   product_category?  @relation("SupplierPreferredCategory", fields: [preferredCategoryId], references: [id])
   preferredProductId  Int?
-  preferredProduct    product?          @relation("SupplierPreferredProduct", fields: [preferredProductId], references: [id])
-  createdAt DateTime @default(now()) @db.DateTime(0)
-  updatedAt DateTime @default(now()) @db.DateTime(0)
+  preferredProduct    product?           @relation("SupplierPreferredProduct", fields: [preferredProductId], references: [id])
+  createdAt           DateTime           @default(now()) @db.DateTime(0)
+  updatedAt           DateTime           @default(now()) @db.DateTime(0)
 
   @@index([preferredCategoryId])
   @@index([preferredProductId])
@@ -142,31 +146,31 @@ model supplier {
 
 // Sales (Invoice) models
 model sale {
-  id          Int        @id @default(autoincrement())
-  uuid        String     @unique(map: "sale_uuid") @db.VarChar(50)
-  date        DateTime   @db.DateTime(0)
+  id          Int         @id @default(autoincrement())
+  uuid        String      @unique(map: "sale_uuid") @db.VarChar(50)
+  date        DateTime    @db.DateTime(0)
   customerId  Int?
-  customer    customer?  @relation(fields: [customerId], references: [id])
-  address     String?    @db.VarChar(512)
-  totalAmount Decimal    @default(0) @db.Decimal(12, 2)
+  customer    customer?   @relation(fields: [customerId], references: [id])
+  address     String?     @db.VarChar(512)
+  totalAmount Decimal     @default(0) @db.Decimal(12, 2)
   items       sale_item[]
-  createdAt   DateTime   @default(now()) @db.DateTime(0)
-  updatedAt   DateTime   @default(now()) @db.DateTime(0)
+  createdAt   DateTime    @default(now()) @db.DateTime(0)
+  updatedAt   DateTime    @default(now()) @db.DateTime(0)
 
   @@index([customerId])
 }
 
 model sale_item {
-  id         Int      @id @default(autoincrement())
-  saleId     Int
-  sale       sale     @relation(fields: [saleId], references: [id])
-  productId  Int?
-  product    product? @relation(fields: [productId], references: [id])
-  productName String  @db.VarChar(255)
-  unit        String? @db.VarChar(50)
+  id          Int      @id @default(autoincrement())
+  saleId      Int
+  sale        sale     @relation(fields: [saleId], references: [id])
+  productId   Int?
+  product     product? @relation(fields: [productId], references: [id])
+  productName String   @db.VarChar(255)
+  unit        String?  @db.VarChar(50)
   quantity    Int
-  unitPrice   Decimal @db.Decimal(10, 2)
-  lineTotal   Decimal @db.Decimal(12, 2)
+  unitPrice   Decimal  @db.Decimal(10, 2)
+  lineTotal   Decimal  @db.Decimal(12, 2)
 
   @@index([saleId])
   @@index([productId])

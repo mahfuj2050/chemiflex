@@ -5,6 +5,7 @@ export type AuthUser = { id: number; email: string; fullName: string; role?: str
 type AuthContextType = {
   user: AuthUser;
   token: string | null;
+  hydrated: boolean;
   login: (token: string, user: AuthUser) => void;
   logout: () => void;
 };
@@ -12,6 +13,7 @@ type AuthContextType = {
 const AuthContext = createContext<AuthContextType>({
   user: null,
   token: null,
+  hydrated: false,
   login: () => {},
   logout: () => {},
 });
@@ -23,6 +25,7 @@ const STORAGE_KEY = 'auth_state_v1';
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<AuthUser>(null);
   const [token, setToken] = useState<string | null>(null);
+  const [hydrated, setHydrated] = useState(false);
 
   useEffect(() => {
     try {
@@ -33,6 +36,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setToken(parsed.token ?? null);
       }
     } catch {}
+    setHydrated(true);
   }, []);
 
   useEffect(() => {
@@ -44,6 +48,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const value = useMemo<AuthContextType>(() => ({
     user,
     token,
+    hydrated,
     login: (t, u) => {
       setToken(t);
       setUser(u);
@@ -52,7 +57,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setToken(null);
       setUser(null);
     },
-  }), [user, token]);
+  }), [user, token, hydrated]);
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };
